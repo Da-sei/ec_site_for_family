@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ItemStatus {
+  AVAILABLE
+  IN_TRANSACTION
+  TRANSFERRED
+  DELETED
+}
+
+enum DeliveryMethod {
+  HAND_DELIVERY
+  POSTAL
+  COURIER
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+  COMPLETED
+}
+
+model Users {
+  id           Int      @id @default(autoincrement())
+  accountId    String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedGroups  Groups[]       @relation("GroupOwner")
+  groupMembers GroupMembers[]
+  listedItems  Items[]        @relation("ItemSeller")
+  requests     Requests[]
+  favorites    Favorites[]
+}
+
+model Groups {
+  id        Int      @id @default(autoincrement())
+  name      String
+  ownerId   Int
+  createdAt DateTime @default(now())
+
+  owner   Users          @relation("GroupOwner", fields: [ownerId], references: [id])
+  members GroupMembers[]
+  invites InviteTokens[]
+  items   Items[]
+}
+
+model GroupMembers {
+  id       Int      @id @default(autoincrement())
+  groupId  Int
+  userId   Int
+  joinedAt DateTime @default(now())
+
+  group Groups @relation(fields: [groupId], references: [id])
+  user  Users  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
+model InviteTokens {
+  id        Int       @id @default(autoincrement())
+  groupId   Int
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  group Groups @relation(fields: [groupId], references: [id])
+}
+
+model Categories {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  items Items[]
+}
+
+model Items {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  sellerId    Int
+  groupId     Int
+  categoryId  Int
+  status      ItemStatus @default(AVAILABLE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  seller          Users                 @relation("ItemSeller", fields: [sellerId], references: [id])
+  group           Groups                @relation(fields: [groupId], references: [id])
+  category        Categories            @relation(fields: [categoryId], references: [id])
+  images          ItemImages[]
+  deliveryOptions ItemDeliveryOptions[]
+  requests        Requests[]
+  favorites       Favorites[]
+}
+
+model ItemImages {
+  id       Int    @id @default(autoincrement())
+  itemId   Int
+  imageUrl String
+  order    Int    @default(0)
+
+  item Items @relation(fields: [itemId], references: [id])
+}
+
+model ItemDeliveryOptions {
+  id     Int            @id @default(autoincrement())
+  itemId Int
+  method DeliveryMethod
+
+  item Items @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId, method])
+}
+
+model Favorites {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  itemId    Int
+  createdAt DateTime @default(now())
+
+  user Users @relation(fields: [userId], references: [id])
+  item Items @relation(fields: [itemId], references: [id])
+
+  @@unique([userId, itemId])
+}
+
+model Requests {
+  id             Int             @id @default(autoincrement())
+  itemId         Int
+  requesterId    Int
+  status         RequestStatus   @default(PENDING)
+  deliveryMethod DeliveryMethod?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  completedAt    DateTime?
+
+  item      Items @relation(fields: [itemId], references: [id])
+  requester Users @relation(fields: [requesterId], references: [id])
+}
