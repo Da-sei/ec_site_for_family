@@ -41,8 +41,9 @@ inclusion: always
 ## 開発標準
 
 ### 型安全性
-- TypeScript strict モード使用
-- `any` 型の使用禁止
+- `strictNullChecks: true`（null/undefined の厳格チェック）
+- `noImplicitAny: false`（明示的な `any` は許容、暗黙的な `any` のみ禁止）
+- デコレータメタデータ有効（NestJS要件）
 
 ### コード品質
 - ESLint + Prettier（NestJS デフォルト設定）

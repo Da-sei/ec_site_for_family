@@ -32,7 +32,7 @@ inclusion: always
     └── {domain}.query.repository.ts     # Prisma読み込み実装
 ```
 
-**現在のドメイン**: `user`, `auth`, `group`, `item`, `request`
+**現在のドメイン**: `user`, `auth`, `group`, `item`, `request`, `favorite`, `wishlist`
 
 ### バックエンド: 共通インフラ
 **場所**: `backend/src/prisma/`
@@ -40,8 +40,8 @@ inclusion: always
 **パターン**: 各ドメインモジュールがPrismaModuleをimportして利用
 
 **場所**: `backend/src/common/guards/`
-**目的**: ドメイン横断のガード（`item-owner.guard.ts`, `group-member.guard.ts`）
-**パターン**: 認可ロジックを共通ガードに抽出し、コントローラーデコレータで適用
+**目的**: ドメイン横断のガード（`item-owner.guard.ts`, `group-member.guard.ts`, `wishlist-item-owner.guard.ts`）
+**パターン**: 認可ロジックを共通ガードに抽出し、コントローラーデコレータで適用。PrismaServiceを直接注入してリソース所有者チェックを実施
 
 ### auth ドメインの特殊パターン
 **場所**: `backend/src/domains/auth/`
@@ -70,7 +70,7 @@ lib/
         └── {screen}_screen.dart    # UI画面
 ```
 
-**現在の機能**: `auth`, `group`, `item`, `request`
+**現在の機能**: `auth`, `group`, `item`, `request`, `wishlist`（実装中）
 
 ## 命名規則
 
