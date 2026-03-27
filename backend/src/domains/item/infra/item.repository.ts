@@ -15,7 +15,9 @@ const itemInclude = {
   images: { orderBy: { order: 'asc' as const } },
 };
 
-function toDetailRaw(item: any): ItemDetailRaw {
+function toDetailRaw(
+  item: any
+): ItemDetailRaw {
   return {
     id: item.id,
     title: item.title,
@@ -33,7 +35,11 @@ function toDetailRaw(item: any): ItemDetailRaw {
 
 @Injectable()
 export class ItemRepository implements IItemRepository {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  constructor(
+    @Inject(PrismaService) 
+    private readonly prisma: PrismaService
+  ) {}
 
   async createItem(data: CreateItemData): Promise<ItemDetailRaw> {
     const item = await this.prisma.items.create({
@@ -53,7 +59,9 @@ export class ItemRepository implements IItemRepository {
     return toDetailRaw(item);
   }
 
-  async findItemById(id: number): Promise<ItemDetailRaw | null> {
+  async findItemById(
+    id: number
+  ): Promise<ItemDetailRaw | null> {
     const item = await this.prisma.items.findUnique({
       where: { id },
       include: itemInclude,
@@ -62,7 +70,9 @@ export class ItemRepository implements IItemRepository {
     return toDetailRaw(item);
   }
 
-  async findItems(opts: FindItemsOptions): Promise<{ items: ItemDetailRaw[]; total: number }> {
+  async findItems(
+    opts: FindItemsOptions
+  ): Promise<{ items: ItemDetailRaw[]; total: number }> {
     const where: any = {
       groupId: opts.groupId,
       status: { in: ['AVAILABLE', 'IN_TRANSACTION'] },
@@ -91,7 +101,10 @@ export class ItemRepository implements IItemRepository {
     return { items: items.map(toDetailRaw), total };
   }
 
-  async updateItem(id: number, data: UpdateItemData): Promise<ItemDetailRaw> {
+  async updateItem(
+    id: number, 
+    data: UpdateItemData
+  ): Promise<ItemDetailRaw> {
     if (data.deliveryMethods) {
       await this.prisma.itemDeliveryOptions.deleteMany({ where: { itemId: id } });
       await this.prisma.itemDeliveryOptions.createMany({
@@ -111,7 +124,9 @@ export class ItemRepository implements IItemRepository {
     return toDetailRaw(item);
   }
 
-  async deleteItem(id: number): Promise<void> {
+  async deleteItem(
+    id: number
+  ): Promise<void> {
     await this.prisma.items.update({
       where: { id },
       data: { status: 'DELETED' },
@@ -128,7 +143,9 @@ export class ItemRepository implements IItemRepository {
     });
   }
 
-  async getNextImageOrder(itemId: number): Promise<number> {
+  async getNextImageOrder(
+    itemId: number
+  ): Promise<number> {
     const last = await this.prisma.itemImages.findFirst({
       where: { itemId },
       orderBy: { order: 'desc' },

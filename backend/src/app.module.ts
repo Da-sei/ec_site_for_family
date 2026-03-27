@@ -12,6 +12,7 @@ import { GroupModule } from './domains/group/group.module';
 import { ItemModule } from './domains/item/item.module';
 import { RequestModule } from './domains/request/request.module';
 import { FavoriteModule } from './domains/favorite/favorite.module';
+import { WishlistModule } from './domains/wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { FavoriteModule } from './domains/favorite/favorite.module';
     ItemModule,
     RequestModule,
     FavoriteModule,
+    WishlistModule,
   ],
   controllers: [],
   providers: [],

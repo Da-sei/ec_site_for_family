@@ -13,12 +13,16 @@ import { GroupMemberEntity } from './../domain/entities/groupMember.entity';
 
 @Injectable()
 export class GroupService {
+
   constructor(
     @Inject('GROUP_REPOSITORY')
     private readonly groupRepo: IGroupRepository,
   ) {}
 
-  async createGroup(name: string, ownerId: number): Promise<GroupEntity> {
+  async createGroup(
+    name: string, 
+    ownerId: number
+  ): Promise<GroupEntity> {
     return this.groupRepo.createGroup(name, ownerId);
   }
 
@@ -38,7 +42,10 @@ export class GroupService {
     return this.groupRepo.createInviteToken(groupId, token, expiresAt);
   }
 
-  async joinGroup(token: string, userId: number): Promise<GroupMemberEntity> {
+  async joinGroup(
+    token: string, 
+    userId: number
+  ): Promise<GroupMemberEntity> {
     const invite = await this.groupRepo.findInviteToken(token);
     if (
       !invite ||
@@ -57,7 +64,9 @@ export class GroupService {
     return this.groupRepo.addMember(invite.groupId, userId);
   }
 
-  async getMyGroups(userId: number): Promise<GroupEntity[]> {
+  async getMyGroups(
+    userId: number
+  ): Promise<GroupEntity[]> {
     return this.groupRepo.findGroupsByUserId(userId);
   }
 }

@@ -22,9 +22,15 @@ interface LoginDto {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // ユーザ情報の登録
   @Public()
   @Post('register')
-  async register(@Body() dto: RegisterDto): Promise<{ accountId: string; accessToken: string }> {
+  async register(
+    @Body() dto: RegisterDto
+  ): Promise<{ 
+    accountId: string; 
+    accessToken: string 
+  }> {
     if (!dto.name || dto.name.trim().length === 0) {
       throw new BadRequestException('name は必須です');
     }
@@ -35,9 +41,14 @@ export class AuthController {
     return this.authService.register(dto.name, dto.password);
   }
 
+  // ユーザのログイン
   @Public()
   @Post('login')
-  async login(@Body() dto: LoginDto): Promise<{ accessToken: string }> {
+  async login(
+    @Body() dto: LoginDto
+  ): Promise<{ 
+    accessToken: string 
+  }> {
     const user = await this.authService.validateUser(dto.accountId, dto.password);
     if (!user) {
       throw new UnauthorizedException('アカウントIDまたはパスワードが正しくありません');

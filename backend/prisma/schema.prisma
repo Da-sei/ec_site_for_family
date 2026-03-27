@@ -39,11 +39,12 @@ model Users {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  ownedGroups  Groups[]       @relation("GroupOwner")
-  groupMembers GroupMembers[]
-  listedItems  Items[]        @relation("ItemSeller")
-  requests     Requests[]
-  favorites    Favorites[]
+  ownedGroups   Groups[]       @relation("GroupOwner")
+  groupMembers  GroupMembers[]
+  listedItems   Items[]        @relation("ItemSeller")
+  requests      Requests[]
+  favorites     Favorites[]
+  wishlistItems WishlistItems[] @relation("WishlistRequester")
 }
 
 model Groups {
@@ -52,10 +53,11 @@ model Groups {
   ownerId   Int
   createdAt DateTime @default(now())
 
-  owner   Users          @relation("GroupOwner", fields: [ownerId], references: [id])
-  members GroupMembers[]
-  invites InviteTokens[]
-  items   Items[]
+  owner         Users           @relation("GroupOwner", fields: [ownerId], references: [id])
+  members       GroupMembers[]
+  invites       InviteTokens[]
+  items         Items[]
+  wishlistItems WishlistItems[]
 }
 
 model GroupMembers {
@@ -149,4 +151,19 @@ model Requests {
 
   item      Items @relation(fields: [itemId], references: [id])
   requester Users @relation(fields: [requesterId], references: [id])
+}
+
+model WishlistItems {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  requesterId Int
+  groupId     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester Users  @relation("WishlistRequester", fields: [requesterId], references: [id])
+  group     Groups @relation(fields: [groupId], references: [id])
+
+  @@index([requesterId, groupId])
 }
