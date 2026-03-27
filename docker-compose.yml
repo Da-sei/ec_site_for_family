@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    container_name: ec_site_for_family_postgres_container
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ec_site_for_family_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    container_name: ec_site_for_family_backend
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: "postgresql://user:password@db:5432/ec_site_for_family_db?schema=public"
+    ports:
+      - "3000:3001"
+    depends_on:
+      - db
+    volumes:
+      - uploads:/uploads
+
+volumes:
+  db_data:
+  uploads:
