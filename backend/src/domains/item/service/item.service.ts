@@ -24,6 +24,7 @@ function toDto(raw: ItemDetailRaw): ItemDetailDto {
 
 @Injectable()
 export class ItemService {
+  
   constructor(
     @Inject('ITEM_REPOSITORY')
     private readonly itemRepo: IItemRepository,

@@ -13,7 +13,7 @@ import { RequestService } from '../service/request.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../../auth/decorators/current-user.decorator';
 import type { RequestDto } from '../domain/dto/request.dto';
-import type { CreateRequestDto } from './request.dto';
+import type { CreateRequestDto } from './dto/request.dto';
 
 @Controller('requests')
 export class RequestController {

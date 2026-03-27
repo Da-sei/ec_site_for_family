@@ -7,17 +7,28 @@ import { UserEntity } from '../user/domain/entity';
 
 @Injectable()
 export class AuthService {
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(accountId: string, password: string): Promise<UserEntity | null> {
-    const record = await this.prisma.users.findUnique({ where: { accountId } });
-    if (!record) return null;
+  // ユーザの判定
+  async validateUser(
+    accountId: string, 
+    password: string
+  ): Promise<UserEntity | null> {
+    const record = await this.prisma.users.findUnique({ 
+      where: { accountId } 
+    });
+
+    if (!record) 
+      return null;
 
     const isMatch = await bcrypt.compare(password, record.passwordHash);
-    if (!isMatch) return null;
+
+    if (!isMatch) 
+      return null;
 
     return new UserEntity({
       id: record.id,
@@ -29,7 +40,14 @@ export class AuthService {
     });
   }
 
-  async register(name: string, password: string): Promise<{ accountId: string; accessToken: string }> {
+  // ユーザ情報の登録
+  async register(
+    name: string, 
+    password: string
+  ): Promise<{ 
+    accountId: string; 
+    accessToken: string 
+  }> {
     const accountId = randomUUID();
     const passwordHash = await bcrypt.hash(password, 10);
     const now = new Date();
@@ -57,6 +75,7 @@ export class AuthService {
     return { accountId: user.accountId, accessToken };
   }
 
+  // ユーザのログイン
   login(user: UserEntity): { accessToken: string } {
     const accessToken = this.jwtService.sign({ sub: user.id, accountId: user.accountId });
     return { accessToken };

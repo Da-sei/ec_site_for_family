@@ -6,9 +6,17 @@ import { IGroupRepository } from '../domain/interfaces/group.repository.interfac
 
 @Injectable()
 export class GroupRepository implements IGroupRepository {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async createGroup(name: string, ownerId: number): Promise<GroupEntity> {
+  constructor(
+    @Inject(PrismaService) 
+    private readonly prisma: PrismaService
+  ) {}
+
+  // グループの作成
+  async createGroup(
+    name: string, 
+    ownerId: number
+  ): Promise<GroupEntity> {
     const group = await this.prisma.groups.create({
       data: { name, ownerId },
     });
@@ -19,12 +27,16 @@ export class GroupRepository implements IGroupRepository {
     return new GroupEntity(group);
   }
 
-  async findGroupById(groupId: number): Promise<GroupEntity | null> {
+  // グループの取得
+  async findGroupById(
+    groupId: number
+  ): Promise<GroupEntity | null> {
     const group = await this.prisma.groups.findUnique({ where: { id: groupId } });
     if (!group) return null;
     return new GroupEntity(group);
   }
 
+  // 招待コードの作成
   async createInviteToken(
     groupId: number,
     token: string,
@@ -43,7 +55,9 @@ export class GroupRepository implements IGroupRepository {
     expiresAt: Date;
     usedAt: Date | null;
   } | null> {
-    return this.prisma.inviteTokens.findUnique({ where: { token } });
+    return this.prisma.inviteTokens.findUnique({ 
+      where: { token } 
+    });
   }
 
   async markTokenUsed(tokenId: number): Promise<void> {

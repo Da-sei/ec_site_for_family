@@ -26,6 +26,7 @@ function toDto(raw: RequestDetailRaw): RequestDto {
 
 @Injectable()
 export class RequestService {
+  
   constructor(
     @Inject('REQUEST_REPOSITORY')
     private readonly requestRepo: IRequestRepository,

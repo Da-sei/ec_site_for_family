@@ -28,9 +28,17 @@ function toDetailRaw(item: any): ItemDetailRaw {
 
 @Injectable()
 export class FavoriteRepository implements IFavoriteRepository {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async add(userId: number, itemId: number): Promise<void> {
+  constructor(
+    @Inject(PrismaService) 
+    private readonly prisma: PrismaService
+  ) {}
+
+  // お気に入りの追加
+  async add(
+    userId: number, 
+    itemId: number
+  ): Promise<void> {
     await this.prisma.favorites.upsert({
       where: { userId_itemId: { userId, itemId } },
       create: { userId, itemId },
@@ -38,11 +46,17 @@ export class FavoriteRepository implements IFavoriteRepository {
     });
   }
 
-  async remove(userId: number, itemId: number): Promise<void> {
+  // お気に入りの削除
+  async remove(
+    userId: number, 
+    itemId: number
+  ): Promise<void> {
     await this.prisma.favorites.deleteMany({ where: { userId, itemId } });
   }
 
-  async findFavoriteItemsByUser(userId: number): Promise<ItemDetailRaw[]> {
+  async findFavoriteItemsByUser(
+    userId: number
+  ): Promise<ItemDetailRaw[]> {
     const favorites = await this.prisma.favorites.findMany({
       where: { userId },
       include: { item: { include: itemInclude } },
@@ -51,7 +65,10 @@ export class FavoriteRepository implements IFavoriteRepository {
     return favorites.map((f) => toDetailRaw(f.item));
   }
 
-  async isFavorited(userId: number, itemId: number): Promise<boolean> {
+  async isFavorited(
+    userId: number, 
+    itemId: number
+  ): Promise<boolean> {
     const fav = await this.prisma.favorites.findUnique({
       where: { userId_itemId: { userId, itemId } },
     });
