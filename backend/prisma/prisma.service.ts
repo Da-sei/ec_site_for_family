@@ -11,7 +11,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     }
     // Prisma 7 adapter package may be inferred as an error type by ESLint's type service.
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const adapter = new PrismaPg({ connectionString });
+    const adapter = new PrismaPg({ connectionString, ssl: { rejectUnauthorized: false } });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     super({ adapter });
   }
