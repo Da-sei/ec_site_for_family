@@ -9,9 +9,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     if (!connectionString) {
       throw new Error('DATABASE_URL is not set');
     }
-    // Prisma 7 adapter package may be inferred as an error type by ESLint's type service.
+    // sslmode in the URL is parsed by pg-connection-string and overrides our ssl option,
+    // so we strip it and configure ssl explicitly to allow Supabase's certificate chain.
+    const cleanUrl = connectionString.replace(/[?&]sslmode=[^&]*/g, '').replace(/[?&]$/, '');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const adapter = new PrismaPg({ connectionString, ssl: { rejectUnauthorized: false } });
+    const adapter = new PrismaPg({ connectionString: cleanUrl, ssl: { rejectUnauthorized: false } });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     super({ adapter });
   }
