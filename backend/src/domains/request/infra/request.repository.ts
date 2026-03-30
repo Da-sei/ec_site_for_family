@@ -93,6 +93,11 @@ export class RequestRepository implements IRequestRepository {
         where: { id: req!.itemId },
         data: { status: 'IN_TRANSACTION' },
       });
+      // 他のPENDINGリクエストを自動辞退
+      await tx.requests.updateMany({
+        where: { itemId: req!.itemId, id: { not: requestId }, status: 'PENDING' },
+        data: { status: 'DECLINED' },
+      });
       return tx.requests.update({
         where: { id: requestId },
         data: { status: 'APPROVED' },

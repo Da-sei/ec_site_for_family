@@ -27,6 +27,16 @@ export class GroupMemberGuard implements CanActivate {
       groupId = parseInt(groupIdParam[0] as string, 10);
     }
 
+    // Try request body groupId (POST /items など)
+    if (!groupId && request.body?.groupId != null) {
+      const bodyGroupId = request.body.groupId;
+      if (typeof bodyGroupId === 'number') {
+        groupId = bodyGroupId;
+      } else if (typeof bodyGroupId === 'string') {
+        groupId = parseInt(bodyGroupId, 10);
+      }
+    }
+
     // If route has :id param and no groupId query, look up item's groupId
     if (!groupId && request.params.id) {
       const rawId = request.params.id;

@@ -70,7 +70,13 @@ lib/
         └── {screen}_screen.dart    # UI画面
 ```
 
-**現在の機能**: `auth`, `group`, `item`, `request`, `wishlist`（実装中）
+**現在の機能**: `auth`, `group`, `item`, `request`, `favorite`, `wishlist`, `profile`
+
+**ルーティングパターン**: `router.dart` の `_fadeSlidePage` ヘルパーで全ルートにフェード+スライドトランジションを統一。`state.extra` で画面間のオブジェクト受け渡しを行う（例: `WishlistItem`, `Item`, `Group`）
+
+**起動時認証パターン**: `initialLocation: '/splash'` → `_RouterNotifier.redirect` が `AuthState.isInitializing` を監視し、トークン確認完了後に `/` または `/login` へリダイレクト。SplashScreen は進捗表示のみの静的ウィジェット
+
+**画面内ナビゲーション**: フィーチャー内のサブ画面（例: `ProfileEditScreen`）は go_router ではなく `Navigator.push` で遷移するケースがある
 
 ## 命名規則
 

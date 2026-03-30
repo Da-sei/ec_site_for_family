@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../core/network/api_client.dart';
 import '../../widgets/main_scaffold.dart';
 import '../group/group_provider.dart';
@@ -35,11 +36,30 @@ class _ItemCreateScreenState extends ConsumerState<ItemCreateScreen> {
   int _selectedCategoryId = 8;
   final List<XFile> _selectedImages = [];
   bool _isLoading = false;
+  InterstitialAd? _interstitialAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInterstitialAd();
+  }
+
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: 'ca-app-pub-2196054972001278/2437346328',
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) => _interstitialAd = ad,
+        onAdFailedToLoad: (_) => _interstitialAd = null,
+      ),
+    );
+  }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -91,7 +111,22 @@ class _ItemCreateScreenState extends ConsumerState<ItemCreateScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('商品を出品しました'), backgroundColor: Colors.green),
         );
-        context.go('/items/$itemId');
+        if (_interstitialAd != null) {
+          _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              if (mounted) context.go('/items/$itemId');
+            },
+            onAdFailedToShowFullScreenContent: (ad, _) {
+              ad.dispose();
+              if (mounted) context.go('/items/$itemId');
+            },
+          );
+          _interstitialAd!.show();
+          _interstitialAd = null;
+        } else {
+          context.go('/items/$itemId');
+        }
       }
     } on DioException catch (e) {
       setState(() => _isLoading = false);

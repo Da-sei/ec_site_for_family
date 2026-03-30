@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../features/group/group_provider.dart';
 
-class MainScaffold extends StatelessWidget {
+class MainScaffold extends ConsumerStatefulWidget {
   final Widget body;
   final int selectedIndex;
-  final bool showSearch;
-  final TextEditingController? searchController;
-  final VoidCallback? onSearchSubmit;
-  final ValueChanged<String>? onSearchChanged;
+  final String? title;
+  final bool showGroupSelector;
   final List<Widget>? extraActions;
   final Widget? floatingActionButton;
 
@@ -15,18 +16,59 @@ class MainScaffold extends StatelessWidget {
     super.key,
     required this.body,
     this.selectedIndex = 0,
-    this.showSearch = false,
-    this.searchController,
-    this.onSearchSubmit,
-    this.onSearchChanged,
+    this.title,
+    this.showGroupSelector = false,
     this.extraActions,
     this.floatingActionButton,
   });
 
   @override
+  ConsumerState<MainScaffold> createState() => _MainScaffoldState();
+}
+
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.showGroupSelector) {
+      Future.microtask(() {
+        if (!mounted) return;
+        final gs = ref.read(groupProvider);
+        if (gs.groups.isEmpty && !gs.isLoading) {
+          ref.read(groupProvider.notifier).loadMyGroups();
+        }
+      });
+    }
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-2196054972001278/9817878986',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _isBannerAdLoaded = true);
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: widget.title != null ? Text(widget.title!) : null,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -36,21 +78,23 @@ class MainScaffold extends StatelessWidget {
             ),
           ),
         ),
-        title: showSearch
-            ? _SearchTextField(
-                controller: searchController,
-                onSubmit: onSearchSubmit,
-                onChanged: onSearchChanged,
+        actions: [
+          if (widget.extraActions != null) ...widget.extraActions!,
+        ],
+        bottom: widget.showGroupSelector
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(36),
+                child: _GroupSelectorBar(),
               )
             : null,
-        actions: [
-          if (extraActions != null) ...extraActions!,
-        ],
       ),
-      body: body,
-      floatingActionButton: floatingActionButton,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: selectedIndex,
+      body: widget.body,
+      floatingActionButton: widget.floatingActionButton,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          BottomNavigationBar(
+        currentIndex: widget.selectedIndex,
         selectedItemColor: const Color(0xFF1976D2),
         unselectedItemColor: Colors.grey,
         backgroundColor: Colors.white,
@@ -68,6 +112,8 @@ class MainScaffold extends StatelessWidget {
             case 2:
               context.go('/requests');
             case 3:
+              context.go('/wishlist');
+            case 4:
               context.go('/profile');
           }
         },
@@ -85,72 +131,173 @@ class MainScaffold extends StatelessWidget {
             label: '申し込み',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.card_giftcard_rounded),
+            label: 'ほしい物',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),
             label: 'マイページ',
           ),
+        ],
+      ),
+          if (_isBannerAdLoaded && _bannerAd != null)
+            SizedBox(
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
         ],
       ),
     );
   }
 }
 
-class _SearchTextField extends StatefulWidget {
-  final TextEditingController? controller;
-  final VoidCallback? onSubmit;
-  final ValueChanged<String>? onChanged;
+// ─────────────────────────────────────────────
+// グループ選択バー（AppBar の bottom スロット用）
+// ─────────────────────────────────────────────
 
-  const _SearchTextField({
-    this.controller,
-    this.onSubmit,
-    this.onChanged,
-  });
+class _GroupSelectorBar extends ConsumerWidget {
+  const _GroupSelectorBar();
 
   @override
-  State<_SearchTextField> createState() => _SearchTextFieldState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final groupState = ref.watch(groupProvider);
+    final current = groupState.groups
+        .where((g) => g.id == groupState.selectedGroupId)
+        .firstOrNull;
+    final label = current?.name ?? 'グループなし';
 
-class _SearchTextFieldState extends State<_SearchTextField> {
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: widget.controller,
-      style: const TextStyle(color: Colors.white),
-      cursorColor: Colors.white,
-      decoration: InputDecoration(
-        hintText: 'キーワードで検索',
-        hintStyle: const TextStyle(color: Colors.white60),
-        prefixIcon: const Icon(Icons.search_rounded, color: Colors.white70),
-        suffixIcon: widget.controller?.text.isNotEmpty == true
-            ? IconButton(
-                icon: const Icon(Icons.clear_rounded, color: Colors.white70),
-                onPressed: () {
-                  widget.controller!.clear();
-                  widget.onChanged?.call('');
-                  setState(() {});
-                },
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: Colors.white30),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showSheet(context, ref),
+        child: Container(
+          height: 36,
+          width: double.infinity,
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.group_rounded, size: 14, color: Colors.white70),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.expand_more_rounded, size: 18, color: Colors.white70),
+            ],
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: Colors.white30),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: Colors.white, width: 1.5),
-        ),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.18),
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
       ),
-      onSubmitted: (_) => widget.onSubmit?.call(),
-      onChanged: (v) {
-        widget.onChanged?.call(v);
-        setState(() {});
-      },
+    );
+  }
+
+  void _showSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) {
+          final groupState = ref.watch(groupProvider);
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Text(
+                    'グループを選択',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                if (groupState.groups.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        '参加中のグループがありません',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                else
+                  ...groupState.groups.map((g) {
+                    final isSelected = g.id == groupState.selectedGroupId;
+                    return ListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF1976D2)
+                              : const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.group_rounded,
+                          color: isSelected ? Colors.white : const Color(0xFF1976D2),
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        g.name,
+                        style: TextStyle(
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? const Color(0xFF1565C0) : null,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(Icons.check_rounded,
+                              color: Color(0xFF1976D2))
+                          : null,
+                      onTap: () {
+                        ref.read(groupProvider.notifier).selectGroup(g.id);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  }),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3E5F5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.settings_rounded,
+                      color: Color(0xFF7B1FA2),
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text('グループを管理'),
+                  subtitle: const Text(
+                    '作成・参加・招待',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded,
+                      color: Colors.grey),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/groups');
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

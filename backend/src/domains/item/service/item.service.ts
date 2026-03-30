@@ -7,6 +7,7 @@ import {
 import type { IItemRepository, ItemDetailRaw, FindItemsOptions } from '../domain/interfaces/item.repository.interface';
 import type { ItemDetailDto, PaginatedItemsDto } from '../domain/dto/item.dto';
 import type { CreateItemInput, UpdateItemInput } from './dto/item.dto';
+import { StorageService } from '../../../storage/storage.service';
 
 function toDto(raw: ItemDetailRaw): ItemDetailDto {
   return {
@@ -24,10 +25,11 @@ function toDto(raw: ItemDetailRaw): ItemDetailDto {
 
 @Injectable()
 export class ItemService {
-  
+
   constructor(
     @Inject('ITEM_REPOSITORY')
     private readonly itemRepo: IItemRepository,
+    private readonly storageService: StorageService,
   ) {}
 
   async createItem(input: CreateItemInput, sellerId: number): Promise<ItemDetailDto> {
@@ -52,6 +54,11 @@ export class ItemService {
       offset: opts.offset,
       limit: opts.limit,
     };
+  }
+
+  async getMyItems(sellerId: number, offset: number, limit: number): Promise<PaginatedItemsDto> {
+    const { items, total } = await this.itemRepo.findMyItems(sellerId, offset, limit);
+    return { items: items.map(toDto), total, offset, limit };
   }
 
   async updateItem(id: number, sellerId: number, input: UpdateItemInput): Promise<ItemDetailDto> {
@@ -84,5 +91,18 @@ export class ItemService {
   async getItemGroupId(itemId: number): Promise<number | null> {
     const raw = await this.itemRepo.findItemById(itemId);
     return raw ? raw.groupId : null;
+  }
+
+  async deleteImage(
+    itemId: number,
+    imageId: number,
+    sellerId: number,
+  ): Promise<void> {
+    const existing = await this.itemRepo.findItemById(itemId);
+    if (!existing) throw new NotFoundException('商品が見つかりません');
+    if (existing.sellerId !== sellerId) throw new ForbiddenException('この操作は許可されていません');
+    const deleted = await this.itemRepo.deleteImage(imageId);
+    if (!deleted) throw new NotFoundException('画像が見つかりません');
+    await this.storageService.delete(deleted.imageUrl);
   }
 }

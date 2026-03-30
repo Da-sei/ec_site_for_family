@@ -1,9 +1,4 @@
 import { Module } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
-
-// uploads ディレクトリを起動時に確保（静的配信は main.ts で設定）
-fs.mkdirSync(path.join(process.cwd(), 'uploads'), { recursive: true });
 
 import { PrismaModule } from '../prisma/prisma.module';
 import { UserModule } from './domains/user/user.module';

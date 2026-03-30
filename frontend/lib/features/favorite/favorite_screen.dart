@@ -84,6 +84,8 @@ class _FavoriteScreenState extends ConsumerState<FavoriteScreen> {
 
     return MainScaffold(
       selectedIndex: 1,
+      title: 'いいね',
+      showGroupSelector: true,
       body: body,
     );
   }

@@ -17,6 +17,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(authProvider).isSessionExpired) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('セッションの有効期限が切れました。再度ログインしてください'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        ref.read(authProvider.notifier).clearSessionExpired();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _accountIdController.dispose();
     _passwordController.dispose();
@@ -29,9 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _accountIdController.text.trim(),
           _passwordController.text,
         );
-    if (success && mounted) {
-      context.go('/');
-    } else if (mounted) {
+    if (!success && mounted) {
       final error = ref.read(authProvider).errorMessage;
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -39,6 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
       }
     }
+    // 成功時は authProvider の isAuthenticated 変化を受けて router が自動的に / へリダイレクト
   }
 
   @override

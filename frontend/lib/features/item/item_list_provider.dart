@@ -19,6 +19,17 @@ class ItemListNotifier extends StateNotifier<ItemListState> {
     }
   }
 
+  /// 画面初期化時など、グループが同じでも必ず再取得したい場合に使う
+  void forceRefresh(int groupId) {
+    _groupId = groupId;
+    refresh();
+  }
+
+  void setGroupIdWithKeyword(int groupId, String keyword) {
+    _groupId = groupId;
+    refresh(keyword: keyword);
+  }
+
   Future<void> refresh({String? keyword, int? categoryId, bool clearCategory = false}) async {
     if (_groupId == null) return;
     state = ItemListState(

@@ -42,8 +42,10 @@ export interface IItemRepository {
   createItem(data: CreateItemData): Promise<ItemDetailRaw>;
   findItemById(id: number): Promise<ItemDetailRaw | null>;
   findItems(opts: FindItemsOptions): Promise<{ items: ItemDetailRaw[]; total: number }>;
+  findMyItems(sellerId: number, offset: number, limit: number): Promise<{ items: ItemDetailRaw[]; total: number }>;
   updateItem(id: number, data: UpdateItemData): Promise<ItemDetailRaw>;
   deleteItem(id: number): Promise<void>;
   addImage(itemId: number, imageUrl: string, order: number): Promise<{ id: number; imageUrl: string; order: number }>;
   getNextImageOrder(itemId: number): Promise<number>;
+  deleteImage(imageId: number): Promise<{ imageUrl: string } | null>;
 }

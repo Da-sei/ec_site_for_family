@@ -53,17 +53,10 @@ export class GroupRepository implements IGroupRepository {
     groupId: number;
     token: string;
     expiresAt: Date;
-    usedAt: Date | null;
   } | null> {
-    return this.prisma.inviteTokens.findUnique({ 
-      where: { token } 
-    });
-  }
-
-  async markTokenUsed(tokenId: number): Promise<void> {
-    await this.prisma.inviteTokens.update({
-      where: { id: tokenId },
-      data: { usedAt: new Date() },
+    return this.prisma.inviteTokens.findUnique({
+      where: { token },
+      select: { id: true, groupId: true, token: true, expiresAt: true },
     });
   }
 
@@ -87,5 +80,41 @@ export class GroupRepository implements IGroupRepository {
       include: { group: true },
     });
     return members.map((m) => new GroupEntity(m.group));
+  }
+
+  async findMembersWithUser(groupId: number): Promise<{ userId: number; accountId: string; name: string; joinedAt: Date }[]> {
+    const members = await this.prisma.groupMembers.findMany({
+      where: { groupId },
+      include: { user: true },
+      orderBy: { joinedAt: 'asc' },
+    });
+    return members.map((m) => ({
+      userId: m.userId,
+      accountId: m.user.accountId,
+      name: m.user.name,
+      joinedAt: m.joinedAt,
+    }));
+  }
+
+  async updateGroupName(groupId: number, name: string): Promise<GroupEntity> {
+    const group = await this.prisma.groups.update({
+      where: { id: groupId },
+      data: { name },
+    });
+    return new GroupEntity(group);
+  }
+
+  async removeMember(groupId: number, userId: number): Promise<void> {
+    await this.prisma.groupMembers.delete({
+      where: { groupId_userId: { groupId, userId } },
+    });
+  }
+
+  async transferOwner(groupId: number, newOwnerId: number): Promise<GroupEntity> {
+    const group = await this.prisma.groups.update({
+      where: { id: groupId },
+      data: { ownerId: newOwnerId },
+    });
+    return new GroupEntity(group);
   }
 }

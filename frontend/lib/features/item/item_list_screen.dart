@@ -18,7 +18,9 @@ const _categories = [
 ];
 
 class ItemListScreen extends ConsumerStatefulWidget {
-  const ItemListScreen({super.key});
+  final String? initialKeyword;
+
+  const ItemListScreen({super.key, this.initialKeyword});
 
   @override
   ConsumerState<ItemListScreen> createState() => _ItemListScreenState();
@@ -26,7 +28,6 @@ class ItemListScreen extends ConsumerStatefulWidget {
 
 class _ItemListScreenState extends ConsumerState<ItemListScreen> {
   final _scrollController = ScrollController();
-  final _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -41,14 +42,21 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
   void _syncGroupAndLoadItems() {
     final groupState = ref.read(groupProvider);
     if (groupState.selectedGroupId != null) {
-      ref.read(itemListProvider.notifier).setGroupId(groupState.selectedGroupId!);
+      if (widget.initialKeyword != null) {
+        ref.read(itemListProvider.notifier).setGroupIdWithKeyword(
+          groupState.selectedGroupId!,
+          widget.initialKeyword!,
+        );
+      } else {
+        // 毎回強制リフレッシュして新着アイテムを取得する
+        ref.read(itemListProvider.notifier).forceRefresh(groupState.selectedGroupId!);
+      }
     }
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -57,10 +65,6 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
         _scrollController.position.maxScrollExtent - 200) {
       ref.read(itemListProvider.notifier).loadMore();
     }
-  }
-
-  void _onSearch() {
-    ref.read(itemListProvider.notifier).refresh(keyword: _searchController.text.trim());
   }
 
   @override
@@ -77,17 +81,8 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
 
     return MainScaffold(
       selectedIndex: 0,
-      showSearch: true,
-      searchController: _searchController,
-      onSearchSubmit: _onSearch,
-      onSearchChanged: (v) => setState(() {}),
-      extraActions: [
-        IconButton(
-          icon: const Icon(Icons.group_rounded),
-          tooltip: 'グループ',
-          onPressed: () => context.push('/groups'),
-        ),
-      ],
+      title: 'ファミリーフリマ',
+      showGroupSelector: true,
       floatingActionButton: groupState.selectedGroupId != null
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/items/create'),
@@ -100,48 +95,6 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
           : null,
       body: Column(
         children: [
-          // グループセレクター
-          if (groupState.groups.isNotEmpty)
-            Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1976D2),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
-                ),
-              ),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: groupState.groups.length,
-                itemBuilder: (ctx, i) {
-                  final group = groupState.groups[i];
-                  final isSelected = groupState.selectedGroupId == group.id;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
-                    child: ChoiceChip(
-                      label: Text(
-                        group.name,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : const Color(0xFF1565C0),
-                        ),
-                      ),
-                      selected: isSelected,
-                      selectedColor: const Color(0xFF1565C0),
-                      backgroundColor: Colors.white,
-                      side: BorderSide(
-                        color: isSelected ? Colors.transparent : Colors.white54,
-                      ),
-                      onSelected: (_) {
-                        ref.read(groupProvider.notifier).selectGroup(group.id);
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-
           // アクティブフィルターバー
           if (hasFilter)
             Container(
@@ -170,7 +123,6 @@ class _ItemListScreenState extends ConsumerState<ItemListScreen> {
                   GestureDetector(
                     onTap: () {
                       ref.read(itemListProvider.notifier).refresh(
-                            keyword: _searchController.text.trim(),
                             clearCategory: true,
                           );
                     },

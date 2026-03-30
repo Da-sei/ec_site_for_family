@@ -16,7 +16,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final hasToken = await _authRepo.hasToken();
     if (hasToken) {
       final savedAccountId = await _authRepo.getAccountId();
-      state = state.copyWith(isAuthenticated: true, accountId: savedAccountId);
+      state = state.copyWith(
+        isAuthenticated: true,
+        accountId: savedAccountId,
+        isInitializing: false,
+      );
+    } else {
+      state = state.copyWith(isInitializing: false);
     }
   }
 
@@ -29,6 +35,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       });
       final token = response.data['accessToken'] as String;
       await _authRepo.saveToken(token);
+      await _authRepo.saveAccountId(accountId);
       state = state.copyWith(
         isAuthenticated: true,
         accountId: accountId,
@@ -99,12 +106,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _authRepo.clearAll();
-    state = const AuthState();
+    state = const AuthState(isInitializing: false);
+  }
+
+  /// セッション切れログアウト: isSessionExpired=true でログイン画面への通知に使用する
+  /// 複数の 401 が連続した場合の冪等性保証のため、未認証時は何もしない
+  /// 注: dioProvider インターセプターが既に clearAll() 済みのため、
+  /// 状態変更を先に行ってルーターへの通知を即時に届ける
+  Future<void> sessionExpiredLogout() async {
+    if (!state.isAuthenticated) return;
+    state = const AuthState(isSessionExpired: true, isInitializing: false);
+    await _authRepo.clearAll();
+  }
+
+  /// LoginScreen が SnackBar 表示後に呼び出しフラグをリセットする
+  void clearSessionExpired() {
+    state = state.copyWith(isSessionExpired: false);
   }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final dio = ref.watch(dioProvider);
   final authRepo = ref.watch(authRepositoryProvider);
-  return AuthNotifier(dio, authRepo);
+  final notifier = AuthNotifier(dio, authRepo);
+
+  // 401 エラー（トークン切れ）を検知したら自動ログアウト → ログイン画面へリダイレクト
+  // isAuthenticated=false の場合はガードして冪等性を保証する
+  ref.listen<int>(sessionExpiredProvider, (prev, next) {
+    if (next > (prev ?? 0)) {
+      notifier.sessionExpiredLogout();
+    }
+  });
+
+  return notifier;
 });

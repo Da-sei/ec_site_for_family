@@ -6,16 +6,22 @@ import 'features/auth/auth_provider.dart';
 import 'features/auth/auth_state.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/register_screen.dart';
+import 'features/auth/splash_screen.dart';
 import 'features/favorite/favorite_screen.dart';
+import 'features/group/group_detail_screen.dart';
 import 'features/group/group_list_screen.dart';
 import 'features/group/group_join_screen.dart';
 import 'features/item/item_list_screen.dart';
 import 'features/item/item_detail_screen.dart';
 import 'features/item/item_create_screen.dart';
 import 'features/item/item_edit_screen.dart';
+import 'features/profile/my_items_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/request/request_list_screen.dart';
 import 'features/request/history_screen.dart';
+import 'features/wishlist/wishlist_list_screen.dart';
+import 'features/wishlist/wishlist_create_screen.dart';
+import 'features/wishlist/wishlist_edit_screen.dart';
 
 /// authProvider の変化を GoRouter に通知する ChangeNotifier
 class _RouterNotifier extends ChangeNotifier {
@@ -26,7 +32,19 @@ class _RouterNotifier extends ChangeNotifier {
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
-    final isAuthenticated = _ref.read(authProvider).isAuthenticated;
+    final authState = _ref.read(authProvider);
+
+    // 初期化中はスプラッシュ画面に留まる
+    if (authState.isInitializing) {
+      return state.matchedLocation == '/splash' ? null : '/splash';
+    }
+
+    // 初期化完了後にスプラッシュ画面から抜ける
+    if (state.matchedLocation == '/splash') {
+      return authState.isAuthenticated ? '/' : '/login';
+    }
+
+    final isAuthenticated = authState.isAuthenticated;
     final isAuthRoute =
         state.matchedLocation == '/login' ||
         state.matchedLocation == '/register';
@@ -63,10 +81,14 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _RouterNotifier(ref);
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(
+        path: '/splash',
+        pageBuilder: (context, state) => _fadeSlidePage(const SplashScreen(), state),
+      ),
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) => _fadeSlidePage(const LoginScreen(), state),
@@ -77,7 +99,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/',
-        pageBuilder: (context, state) => _fadeSlidePage(const ItemListScreen(), state),
+        pageBuilder: (context, state) => _fadeSlidePage(
+          ItemListScreen(initialKeyword: state.extra as String?),
+          state,
+        ),
       ),
       GoRoute(
         path: '/items/create',
@@ -106,6 +131,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _fadeSlidePage(const GroupJoinScreen(), state),
       ),
       GoRoute(
+        path: '/groups/:id',
+        pageBuilder: (context, state) {
+          final group = state.extra as Group;
+          return _fadeSlidePage(GroupDetailScreen(group: group), state);
+        },
+      ),
+      GoRoute(
         path: '/requests',
         pageBuilder: (context, state) => _fadeSlidePage(const RequestListScreen(), state),
       ),
@@ -120,6 +152,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile',
         pageBuilder: (context, state) => _fadeSlidePage(const ProfileScreen(), state),
+      ),
+      GoRoute(
+        path: '/my-items',
+        pageBuilder: (context, state) => _fadeSlidePage(const MyItemsScreen(), state),
+      ),
+      GoRoute(
+        path: '/wishlist',
+        pageBuilder: (context, state) => _fadeSlidePage(const WishlistListScreen(), state),
+      ),
+      GoRoute(
+        path: '/wishlist/create',
+        pageBuilder: (context, state) => _fadeSlidePage(const WishlistCreateScreen(), state),
+      ),
+      GoRoute(
+        path: '/wishlist/:id/edit',
+        pageBuilder: (context, state) {
+          final item = state.extra as WishlistItem;
+          return _fadeSlidePage(WishlistEditScreen(item: item), state);
+        },
       ),
     ],
   );

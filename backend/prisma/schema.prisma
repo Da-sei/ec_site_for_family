@@ -73,11 +73,10 @@ model GroupMembers {
 }
 
 model InviteTokens {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   groupId   Int
-  token     String    @unique
+  token     String   @unique
   expiresAt DateTime
-  usedAt    DateTime?
 
   group Groups @relation(fields: [groupId], references: [id])
 }

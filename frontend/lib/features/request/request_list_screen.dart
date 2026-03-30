@@ -24,6 +24,8 @@ class _RequestListScreenState extends ConsumerState<RequestListScreen> {
 
     return MainScaffold(
       selectedIndex: 2,
+      title: '申し込み一覧',
+      showGroupSelector: true,
       body: requestState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : requestState.myRequests.isEmpty

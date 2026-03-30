@@ -101,6 +101,25 @@ export class ItemRepository implements IItemRepository {
     return { items: items.map(toDetailRaw), total };
   }
 
+  async findMyItems(
+    sellerId: number,
+    offset: number,
+    limit: number,
+  ): Promise<{ items: ItemDetailRaw[]; total: number }> {
+    const where = { sellerId, status: { not: 'DELETED' as const } };
+    const [items, total] = await Promise.all([
+      this.prisma.items.findMany({
+        where,
+        include: itemInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+      this.prisma.items.count({ where }),
+    ]);
+    return { items: items.map(toDetailRaw), total };
+  }
+
   async updateItem(
     id: number, 
     data: UpdateItemData
@@ -151,5 +170,12 @@ export class ItemRepository implements IItemRepository {
       orderBy: { order: 'desc' },
     });
     return last ? last.order + 1 : 0;
+  }
+
+  async deleteImage(imageId: number): Promise<{ imageUrl: string } | null> {
+    const image = await this.prisma.itemImages.findUnique({ where: { id: imageId } });
+    if (!image) return null;
+    await this.prisma.itemImages.delete({ where: { id: imageId } });
+    return { imageUrl: image.imageUrl };
   }
 }

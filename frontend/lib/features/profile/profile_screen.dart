@@ -6,6 +6,7 @@ import '../../core/models/models.dart';
 import '../../core/network/api_client.dart';
 import '../../widgets/main_scaffold.dart';
 import '../auth/auth_provider.dart';
+import 'profile_edit_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -53,9 +54,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _logout() async {
     await ref.read(authProvider.notifier).logout();
-    if (mounted) {
-      context.go('/login'); // ignore: use_build_context_synchronously
-    }
+    // isAuthenticated: false になったことをルーターが検知して /login へリダイレクト
   }
 
   @override
@@ -78,6 +77,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ElevatedButton(
               onPressed: _loadProfile,
               child: const Text('再試行'),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _logout,
+              icon: const Icon(Icons.logout_rounded, color: Color(0xFFD32F2F)),
+              label: const Text(
+                'ログアウト',
+                style: TextStyle(color: Color(0xFFD32F2F)),
+              ),
             ),
           ],
         ),
@@ -131,6 +139,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       color: Colors.white70,
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final updated = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              ProfileEditScreen(initialName: user.name),
+                        ),
+                      );
+                      if (updated == true) _loadProfile();
+                    },
+                    icon: const Icon(Icons.edit_rounded,
+                        size: 16, color: Colors.white),
+                    label: const Text('編集',
+                        style: TextStyle(color: Colors.white, fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      side:
+                          const BorderSide(color: Colors.white54),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -139,6 +172,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             // ショートカットメニュー
             _SectionHeader(title: 'アクティビティ'),
+            _MenuTile(
+              icon: Icons.storefront_rounded,
+              iconColor: const Color(0xFF0288D1),
+              bgColor: const Color(0xFFE1F5FE),
+              title: '自分の出品',
+              subtitle: '出品した商品を管理',
+              onTap: () => context.push('/my-items'),
+            ),
             _MenuTile(
               icon: Icons.inbox_rounded,
               iconColor: const Color(0xFF1976D2),
@@ -154,6 +195,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               title: '取引履歴',
               subtitle: '完了した取引を確認',
               onTap: () => context.push('/history'),
+            ),
+            _MenuTile(
+              icon: Icons.favorite_rounded,
+              iconColor: const Color(0xFFE53935),
+              bgColor: const Color(0xFFFFEBEE),
+              title: 'お気に入り',
+              subtitle: 'いいねした商品を確認',
+              onTap: () => context.go('/favorites'),
+            ),
+            _MenuTile(
+              icon: Icons.card_giftcard_rounded,
+              iconColor: const Color(0xFFF57C00),
+              bgColor: const Color(0xFFFFF3E0),
+              title: 'ほしい物リスト',
+              subtitle: 'グループ内のほしい物を管理',
+              onTap: () => context.go('/wishlist'),
             ),
 
             const SizedBox(height: 8),
@@ -171,6 +228,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 8),
 
             _SectionHeader(title: 'アカウント'),
+            _MenuTile(
+              icon: Icons.edit_rounded,
+              iconColor: const Color(0xFF546E7A),
+              bgColor: const Color(0xFFECEFF1),
+              title: 'プロフィール編集',
+              subtitle: '名前・パスワードを変更',
+              onTap: () async {
+                final updated = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        ProfileEditScreen(initialName: user.name),
+                  ),
+                );
+                if (updated == true) _loadProfile();
+              },
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: OutlinedButton.icon(
@@ -201,7 +275,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     return MainScaffold(
-      selectedIndex: 3,
+      selectedIndex: 4,
+      title: 'マイページ',
       body: body,
     );
   }

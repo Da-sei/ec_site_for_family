@@ -51,9 +51,8 @@ inclusion: always
 - Lint: `npm run lint`
 
 ### テスト
-- Jest（ユニット・E2Eテスト）
-- テストファイル: `*.spec.ts`
-- E2E設定: `test/jest-e2e.json`
+- **バックエンド**: Jest（ユニット・E2Eテスト）、テストファイル: `*.spec.ts`、E2E設定: `test/jest-e2e.json`
+- **フロントエンド**: `flutter_test` + カスタム `HttpClientAdapter`（Dioのモック）。テストファイル: `frontend/test/*.dart`
 
 ## 開発環境
 
@@ -98,5 +97,8 @@ flutter test
 - **Prismaスキーマ**: 単一の `backend/prisma/schema.prisma` で全モデルを管理
 - **ポート設定**: バックエンドはホスト3000番→コンテナ3001番にマッピング
 - **フロントエンド状態管理**: Riverpod（`flutter_riverpod`）。StateNotifierProvider パターンで状態を管理
-- **フロントエンドルーティング**: `go_router` によるDeclarativeルーティング
+- **フロントエンドルーティング**: `go_router` によるDeclarativeルーティング。カスタムトランジション（`_fadeSlidePage`）を全ルートに適用
 - **フロントエンドHTTP**: `dio` + `flutter_secure_storage`（JWTトークン保存）
+- **イベントカウンターパターン**: `StateProvider<int>` をインクリメントカウンターとして使用し、Dioインターセプター → Riverpod状態層へイベントを伝播（`sessionExpiredProvider`）。boolean フラグではなくカウンターにすることで複数の同時イベントを冪等に処理
+- **トランジェントフラグパターン**: 一回限りのUI通知に `AuthState.isSessionExpired` のような一時フラグを使用。UI（LoginScreen）がSnackBar表示後に `clearSessionExpired()` でフラグをリセットする責務を持つ
+- **起動時初期化フラグ**: `AuthState.isInitializing`（初期値 `true`）でアプリ起動時のトークン確認状態を管理。`isInitializing` が true の間はスプラッシュ画面に留まり、確認完了後に認証状態に応じてリダイレクト

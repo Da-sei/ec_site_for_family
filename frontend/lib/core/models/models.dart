@@ -151,6 +151,67 @@ class Item {
   }
 }
 
+class GroupMember {
+  final int userId;
+  final String accountId;
+  final String name;
+  final DateTime joinedAt;
+  final bool isOwner;
+
+  const GroupMember({
+    required this.userId,
+    required this.accountId,
+    required this.name,
+    required this.joinedAt,
+    required this.isOwner,
+  });
+
+  factory GroupMember.fromJson(Map<String, dynamic> json) {
+    return GroupMember(
+      userId: json['userId'] as int,
+      accountId: json['accountId'] as String,
+      name: json['name'] as String,
+      joinedAt: DateTime.parse(json['joinedAt'] as String),
+      isOwner: json['isOwner'] as bool,
+    );
+  }
+}
+
+class WishlistItem {
+  final int id;
+  final String title;
+  final String? description;
+  final int groupId;
+  final int requesterId;
+  final User requester;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const WishlistItem({
+    required this.id,
+    required this.title,
+    this.description,
+    required this.groupId,
+    required this.requesterId,
+    required this.requester,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory WishlistItem.fromJson(Map<String, dynamic> json) {
+    return WishlistItem(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      groupId: json['groupId'] as int,
+      requesterId: json['requesterId'] as int,
+      requester: User.fromJson(json['requester'] as Map<String, dynamic>),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+    );
+  }
+}
+
 class ItemRequest {
   final int id;
   final int itemId;

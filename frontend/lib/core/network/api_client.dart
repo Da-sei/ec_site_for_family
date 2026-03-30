@@ -3,10 +3,12 @@ import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, Tar
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_repository.dart';
 
-// Web: ブラウザから直接 localhost:3000 へ
-// Android emulator: 10.0.2.2 でホストの localhost にアクセス
-// iOS simulator / その他: localhost
+// ビルド時に --dart-define=API_BASE_URL=https://... で注入できる。
+// 未指定の場合はローカル開発用のフォールバックを使用する。
+const _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+
 String get baseUrl {
+  if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
   if (kIsWeb) return 'http://localhost:3000';
   if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:3000';
   return 'http://localhost:3000';
@@ -15,6 +17,10 @@ String get baseUrl {
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository();
 });
+
+/// 401 エラー発生時にインクリメントされるカウンター。
+/// authProvider がこれを監視してログアウト処理を実行する。
+final sessionExpiredProvider = StateProvider<int>((ref) => 0);
 
 final dioProvider = Provider<Dio>((ref) {
   final authRepo = ref.read(authRepositoryProvider);
@@ -36,8 +42,8 @@ final dioProvider = Provider<Dio>((ref) {
       },
       onError: (error, handler) async {
         if (error.response?.statusCode == 401) {
-          await authRepo.clearToken();
-          // The router redirect will handle navigation to login
+          await authRepo.clearAll();
+          ref.read(sessionExpiredProvider.notifier).state++;
         }
         return handler.next(error);
       },

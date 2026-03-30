@@ -16,14 +16,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import * as path from 'path';
-import * as fs from 'fs';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'items');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-import { v4 as uuidv4 } from 'uuid';
+import { memoryStorage } from 'multer';
 import { ItemService } from '../service/item.service';
+import { StorageService } from '../../../storage/storage.service';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../../auth/decorators/current-user.decorator';
 import { GroupMemberGuard } from '../../../common/guards/group-member.guard';
@@ -33,10 +28,14 @@ import { CreateItemDto, UpdateItemDto } from './dto/item.dto';
 
 @Controller('items')
 export class ItemController {
-  constructor(private readonly itemService: ItemService) {}
+  constructor(
+    private readonly itemService: ItemService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(GroupMemberGuard)
   async createItem(
     @Body() dto: CreateItemDto,
     @CurrentUser() user: JwtPayload,
@@ -58,13 +57,7 @@ export class ItemController {
   @UseGuards(ItemOwnerGuard)
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: UPLOAD_DIR,
-        filename: (_req, file, cb) => {
-          const ext = path.extname(file.originalname);
-          cb(null, `${uuidv4()}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
@@ -83,7 +76,7 @@ export class ItemController {
     if (!file) {
       throw new BadRequestException('ファイルが必要です');
     }
-    const imageUrl = `/uploads/items/${file.filename}`;
+    const imageUrl = await this.storageService.upload(file.buffer, file.originalname, file.mimetype);
     return this.itemService.addImage(itemId, user.sub, imageUrl);
   }
 
@@ -101,6 +94,17 @@ export class ItemController {
     const limit = Math.min(limitStr ? parseInt(limitStr, 10) : 20, 50);
     const categoryId = categoryIdStr ? parseInt(categoryIdStr, 10) : undefined;
     return this.itemService.getItems({ groupId, keyword, categoryId, offset, limit });
+  }
+
+  @Get('mine')
+  async getMyItems(
+    @CurrentUser() user: JwtPayload,
+    @Query('offset') offsetStr?: string,
+    @Query('limit') limitStr?: string,
+  ): Promise<PaginatedItemsDto> {
+    const offset = offsetStr ? parseInt(offsetStr, 10) : 0;
+    const limit = Math.min(limitStr ? parseInt(limitStr, 10) : 20, 50);
+    return this.itemService.getMyItems(user.sub, offset, limit);
   }
 
   @Get(':id')
@@ -128,5 +132,16 @@ export class ItemController {
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
     return this.itemService.deleteItem(id, user.sub);
+  }
+
+  @Delete(':id/images/:imageId')
+  @UseGuards(ItemOwnerGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteImage(
+    @Param('id', ParseIntPipe) itemId: number,
+    @Param('imageId', ParseIntPipe) imageId: number,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<void> {
+    return this.itemService.deleteImage(itemId, imageId, user.sub);
   }
 }
